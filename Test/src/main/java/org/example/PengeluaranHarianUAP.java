@@ -1,0 +1,297 @@
+package org.example;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.io.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+
+public class PengeluaranHarianUAP extends JFrame {
+
+    // ===== STYLE (SOFT PINK + HITAM) =====
+    Font titleFont = new Font("Segoe UI", Font.BOLD, 26);
+    Font font = new Font("Segoe UI", Font.PLAIN, 14);
+
+    Color bgBlack   = new Color(22, 22, 24);
+    Color cardBlack = new Color(36, 36, 40);
+    Color softPink  = new Color(240, 180, 200); // SOFT PINK
+    Color white     = new Color(245, 245, 245);
+    Color gray      = new Color(180, 180, 180);
+
+    // ===== COMPONENT =====
+    CardLayout cardLayout = new CardLayout();
+    JPanel mainPanel = new JPanel(cardLayout);
+
+    JTextField txtTanggal, txtKeterangan, txtJumlah, txtSearch;
+    JLabel lblTotal, lblJumlahData;
+    JTable table;
+    DefaultTableModel model;
+
+    ArrayList<Pengeluaran> dataList = new ArrayList<>();
+    final String FILE_NAME = "pengeluaran.csv";
+
+    public PengeluaranHarianUAP() {
+        setTitle("Pengeluaran Harian");
+        setSize(900, 550);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        mainPanel.setBackground(bgBlack);
+
+        mainPanel.add(dashboard(), "DASHBOARD");
+        mainPanel.add(formInput(), "FORM");
+        mainPanel.add(listData(), "LIST");
+        mainPanel.add(laporan(), "LAPORAN");
+
+        add(mainPanel);
+        loadData();
+        cardLayout.show(mainPanel, "DASHBOARD");
+    }
+
+    // ===== DASHBOARD =====
+    private JPanel dashboard() {
+        JPanel root = new JPanel(new GridBagLayout());
+        root.setBackground(bgBlack);
+
+        JPanel card = new JPanel();
+        card.setPreferredSize(new Dimension(360, 360));
+        card.setBackground(cardBlack);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(30, 30, 30, 30));
+
+        JLabel title = new JLabel("Pengeluaran Harian");
+        title.setFont(titleFont);
+        title.setForeground(softPink);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel sub = new JLabel("catat keuangan kamu");
+        sub.setForeground(gray);
+        sub.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        card.add(title);
+        card.add(Box.createVerticalStrut(8));
+        card.add(sub);
+        card.add(Box.createVerticalStrut(35));
+
+        card.add(menuButton("Input Data", "FORM"));
+        card.add(Box.createVerticalStrut(12));
+        card.add(menuButton("Lihat Data", "LIST"));
+        card.add(Box.createVerticalStrut(12));
+        card.add(menuButton("Laporan", "LAPORAN"));
+        card.add(Box.createVerticalStrut(12));
+        card.add(menuButton("Keluar", "EXIT"));
+
+        root.add(card);
+        return root;
+    }
+
+    // ===== FORM INPUT =====
+    private JPanel formInput() {
+        JPanel panel = new JPanel(new BorderLayout(20, 20));
+        panel.setBackground(bgBlack);
+        panel.setBorder(new EmptyBorder(30, 220, 30, 220));
+
+        JLabel title = new JLabel("Input Pengeluaran");
+        title.setFont(titleFont);
+        title.setForeground(softPink);
+
+        JPanel form = new JPanel(new GridLayout(6, 1, 10, 10));
+        form.setBackground(cardBlack);
+        form.setBorder(new EmptyBorder(25, 25, 25, 25));
+
+        txtTanggal = field(LocalDate.now().toString());
+        txtKeterangan = field("");
+        txtJumlah = field("");
+
+        form.add(label("Tanggal"));
+        form.add(txtTanggal);
+        form.add(label("Keterangan"));
+        form.add(txtKeterangan);
+        form.add(label("Jumlah"));
+        form.add(txtJumlah);
+
+        JButton save = actionButton("Simpan");
+        JButton back = actionButton("Kembali");
+
+        save.addActionListener(e -> simpanData());
+        back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
+
+        JPanel btn = new JPanel();
+        btn.setBackground(bgBlack);
+        btn.add(save);
+        btn.add(back);
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(form, BorderLayout.CENTER);
+        panel.add(btn, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    // ===== LIST DATA =====
+    private JPanel listData() {
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setBackground(bgBlack);
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        model = new DefaultTableModel(new String[]{"Tanggal", "Keterangan", "Jumlah"}, 0);
+        table = new JTable(model);
+        table.setRowHeight(28);
+
+        txtSearch = field("");
+        txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                searchData();
+            }
+        });
+
+        JButton back = actionButton("Kembali");
+        back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
+
+        panel.add(txtSearch, BorderLayout.NORTH);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(back, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    // ===== LAPORAN =====
+    private JPanel laporan() {
+        JPanel panel = new JPanel(new GridLayout(4, 1, 10, 10));
+        panel.setBackground(bgBlack);
+        panel.setBorder(new EmptyBorder(40, 40, 40, 40));
+
+        JLabel title = new JLabel("Laporan Pengeluaran");
+        title.setFont(titleFont);
+        title.setForeground(softPink);
+
+        lblTotal = new JLabel();
+        lblTotal.setFont(titleFont);
+        lblTotal.setForeground(white);
+
+        lblJumlahData = new JLabel();
+        lblJumlahData.setForeground(gray);
+
+        JButton back = actionButton("Kembali");
+        back.addActionListener(e -> cardLayout.show(mainPanel, "DASHBOARD"));
+
+        panel.add(title);
+        panel.add(lblTotal);
+        panel.add(lblJumlahData);
+        panel.add(back);
+        return panel;
+    }
+
+    // ===== LOGIC =====
+    private void simpanData() {
+        try {
+            dataList.add(new Pengeluaran(
+                    LocalDate.parse(txtTanggal.getText()),
+                    txtKeterangan.getText(),
+                    Integer.parseInt(txtJumlah.getText())
+            ));
+            saveData();
+            refreshTable();
+            JOptionPane.showMessageDialog(this, "Data tersimpan");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Input tidak valid");
+        }
+    }
+
+    private void searchData() {
+        model.setRowCount(0);
+        for (Pengeluaran p : dataList)
+            if (p.keterangan.toLowerCase().contains(txtSearch.getText().toLowerCase()))
+                model.addRow(new Object[]{p.tanggal, p.keterangan, p.jumlah});
+    }
+
+    private void refreshTable() {
+        model.setRowCount(0);
+        for (Pengeluaran p : dataList)
+            model.addRow(new Object[]{p.tanggal, p.keterangan, p.jumlah});
+    }
+
+    private void saveData() {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            for (Pengeluaran p : dataList)
+                pw.println(p.tanggal + "," + p.keterangan + "," + p.jumlah);
+        } catch (IOException ignored) {}
+    }
+
+    private void loadData() {
+        try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
+            String l;
+            while ((l = br.readLine()) != null) {
+                String[] d = l.split(",");
+                dataList.add(new Pengeluaran(
+                        LocalDate.parse(d[0]), d[1], Integer.parseInt(d[2])
+                ));
+            }
+            refreshTable();
+        } catch (IOException ignored) {}
+    }
+
+    // ===== HELPER =====
+    private JButton menuButton(String text, String target) {
+        JButton b = new JButton(text);
+        b.setAlignmentX(Component.CENTER_ALIGNMENT);
+        b.setMaximumSize(new Dimension(260, 42));
+        b.setBackground(softPink);
+        b.setForeground(Color.BLACK);
+        b.setFont(font);
+        b.setFocusPainted(false);
+        b.setBorder(new EmptyBorder(10, 20, 10, 20));
+        b.addActionListener(e -> {
+            if (target.equals("EXIT")) System.exit(0);
+            else if (target.equals("LAPORAN")) updateLaporan();
+            else cardLayout.show(mainPanel, target);
+        });
+        return b;
+    }
+
+    private JButton actionButton(String t) {
+        JButton b = new JButton(t);
+        b.setBackground(softPink);
+        b.setForeground(Color.BLACK);
+        b.setFont(font);
+        b.setBorder(new EmptyBorder(10, 20, 10, 20));
+        return b;
+    }
+
+    private JTextField field(String v) {
+        JTextField f = new JTextField(v);
+        f.setBorder(new LineBorder(softPink));
+        f.setFont(font);
+        return f;
+    }
+
+    private JLabel label(String t) {
+        JLabel l = new JLabel(t);
+        l.setForeground(white);
+        l.setFont(font);
+        return l;
+    }
+
+    private void updateLaporan() {
+        int total = dataList.stream().mapToInt(p -> p.jumlah).sum();
+        lblTotal.setText("Total Pengeluaran: Rp " + total);
+        lblJumlahData.setText("Jumlah Transaksi: " + dataList.size());
+        cardLayout.show(mainPanel, "LAPORAN");
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new PengeluaranHarianUAP().setVisible(true));
+    }
+}
+
+class Pengeluaran {
+    LocalDate tanggal;
+    String keterangan;
+    int jumlah;
+
+    Pengeluaran(LocalDate t, String k, int j) {
+        tanggal = t;
+        keterangan = k;
+        jumlah = j;
+    }
+}
